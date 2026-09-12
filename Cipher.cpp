@@ -4,6 +4,7 @@
 
 namespace
 {
+    // Ключи для шифрования
     constexpr std::uint8_t KA[8] =
     {
         0x5A, 0x31, 0xC7, 0x92,
@@ -21,7 +22,7 @@ namespace
         0x3D, 0x6A, 0x91, 0x27,
         0xB4, 0x58, 0xC2, 0x0F
     };
-
+    // циклические сдвиги
     std::uint8_t rol8(std::uint8_t x, unsigned n)
     {
         return static_cast<std::uint8_t>(
@@ -39,6 +40,7 @@ namespace
 
 Cipher::Block Cipher::encryptA(std::uint32_t value)
 {
+    // номер счетчика превращается в 8 байт = 4 байта числа + 4 служебных
     Block b =
     {
         static_cast<std::uint8_t>(value),
@@ -47,13 +49,13 @@ Cipher::Block Cipher::encryptA(std::uint32_t value)
         static_cast<std::uint8_t>(value >> 24),
         0xC3, 0x71, 0x2E, 0x94
     };
-
+    // шифрование ключом и сдвиг
     for (std::size_t i = 0; i < b.size(); ++i)
         b[i] = rol8(static_cast<std::uint8_t>(b[i] ^ KA[i]), 3);
 
+    // перестановка битов на такой порядок
     const std::size_t p[8] = { 3, 6, 1, 7, 0, 5, 2, 4 };
     Block out{};
-
     for (std::size_t i = 0; i < 8; ++i)
         out[i] = b[p[i]];
 
@@ -62,12 +64,13 @@ Cipher::Block Cipher::encryptA(std::uint32_t value)
 
 Cipher::Block Cipher::decryptA(const Block& block)
 {
+    //перестановка обратно
     const std::size_t p[8] = { 3, 6, 1, 7, 0, 5, 2, 4 };
     Block b{};
-
     for (std::size_t i = 0; i < 8; ++i)
         b[p[i]] = block[i];
 
+    // циклический сдвиг обратно и расшифровка ключом
     for (std::size_t i = 0; i < b.size(); ++i)
         b[i] = static_cast<std::uint8_t>(ror8(b[i], 3) ^ KA[i]);
 
@@ -76,6 +79,7 @@ Cipher::Block Cipher::decryptA(const Block& block)
 
 Cipher::Block Cipher::encryptB(std::uint32_t value)
 {
+    // номер счетчика превращается в 8 байт = 4 байта числа + 4 служебных
     Block b =
     {
         static_cast<std::uint8_t>(value),
@@ -84,7 +88,7 @@ Cipher::Block Cipher::encryptB(std::uint32_t value)
         static_cast<std::uint8_t>(value >> 24),
         0x42, 0x91, 0x2D, 0x73
     };
-
+    // + 17 * номер байта, потом шифрование ключом
     for (std::size_t i = 0; i < 7; ++i)
     {
         b[i] = static_cast<std::uint8_t>(
@@ -92,12 +96,13 @@ Cipher::Block Cipher::encryptB(std::uint32_t value)
         );
     }
 
+    // контрольная сумма пишется в последний байт
     std::uint8_t check = 0;
     for (std::size_t i = 0; i < 7; ++i)
         check ^= b[i];
-
     b[7] = static_cast<std::uint8_t>(b[7] ^ check);
 
+    //переворот
     std::swap(b[0], b[7]);
     std::swap(b[1], b[6]);
     std::swap(b[2], b[5]);
@@ -109,18 +114,20 @@ Cipher::Block Cipher::encryptB(std::uint32_t value)
 Cipher::Block Cipher::decryptB(const Block& block)
 {
     Block b = block;
-
+    //разворот обратно
     std::swap(b[0], b[7]);
     std::swap(b[1], b[6]);
     std::swap(b[2], b[5]);
     std::swap(b[3], b[4]);
 
+    // восстановление последнего байта из контрольной суммы
     std::uint8_t check = 0;
     for (std::size_t i = 0; i < 7; ++i)
         check ^= b[i];
 
     b[7] = static_cast<std::uint8_t>(b[7] ^ check);
 
+    // расшифровка ключом, - (17 * номер байта)
     for (std::size_t i = 0; i < 7; ++i)
     {
         b[i] = static_cast<std::uint8_t>(
@@ -172,6 +179,7 @@ Cipher::Block Cipher::decryptDecoy(const Block& block)
     return b;
 }
 
+// расшифровать путь
 std::string Cipher::unpack(const unsigned char* data,
                            std::size_t size,
                            std::uint8_t key)
