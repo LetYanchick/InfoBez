@@ -10,19 +10,20 @@
 
 namespace FileControl
 {
+    // файл существует
     bool exists(const std::string& path)
     {
         std::error_code ec;
         return std::filesystem::is_regular_file(path, ec);
     }
-
+    // создать папку
     bool createDirectory(const std::string& path)
     {
         std::error_code ec;
         std::filesystem::create_directories(path, ec);
         return !ec && std::filesystem::is_directory(path, ec);
     }
-
+    // чтение 8ми байт
     bool read(const std::string& path, Cipher::Block& block)
     {
         std::ifstream file(path, std::ios::binary);
@@ -34,11 +35,9 @@ namespace FileControl
 
         return file.gcount() == static_cast<std::streamsize>(block.size());
     }
-
+    // запись 8ми байт
     bool write(const std::string& path, const Cipher::Block& block)
     {
-        // Existing files are opened without truncation. Exactly 8 bytes
-        // are overwritten, therefore file length remains unchanged.
         std::fstream file(
             path,
             std::ios::in | std::ios::out | std::ios::binary
@@ -66,7 +65,7 @@ namespace FileControl
 
         return file.good();
     }
-
+    // сохранить время
     bool getTimes(const std::string& path, Times& times)
     {
         struct stat st{};
@@ -79,7 +78,7 @@ namespace FileControl
 
         return true;
     }
-
+    // восстановить время
     bool restoreTimes(const std::string& path, const Times& times)
     {
         struct timespec ts[2];
@@ -88,7 +87,7 @@ namespace FileControl
         ts[1] = times.modify;
 
         return ::utimensat(
-            AT_FDCWD,
+            AT_FDCWD, // текущая директория
             path.c_str(),
             ts,
             0
