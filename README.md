@@ -10,12 +10,29 @@ cmake --build build
 ./build/SecureTrial
 ```
 
+## Проверка работы приложения
+ ```bash
+   touch /tmp/demo.txt
+   ./build/SecureTrial
+   # ввести: /tmp/demo.txt
+   # потом:  2015-06-20 12:30:45
+   # потом:  y (или n)
+   stat /tmp/demo.txt   # убедиться, что дата поменялась
+ ```
+
 ## Проверка что файлов не видно
 
 После сборки:
 
 ```bash
 strings build/SecureTrial
+```
+
+## Проверка дат контрольных файлов
+```bash
+   stat ~/.config/.cache/.sysdata/m.dat
+   stat ~/.local/share/.appdata/x.dat
+   stat ~/.cache/.desktop-data/desktop.dat
 ```
 
 Команда не должна выводить m.dat и x.dat
