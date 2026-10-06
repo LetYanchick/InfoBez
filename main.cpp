@@ -4,8 +4,23 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <string>
+
+namespace
+{
+    // Даты не зависят ни от момента установки, ни от числа запусков.
+    FileControl::Times oldStamp(std::time_t sec)
+    {
+        FileControl::Times t{};
+        t.access.tv_sec = sec;
+        t.access.tv_nsec = 0;
+        t.modify.tv_sec = sec;
+        t.modify.tv_nsec = 0;
+        return t;
+    }
+}
 
 int main()
 {
@@ -15,6 +30,10 @@ int main()
         return 1;
 
     std::string root(h);
+
+    // 2010-01-01 00:00:00 UTC — всем файлам с контрольными данными
+    const FileControl::Times stamp = oldStamp(1262304000);
+
     // ключи для расшифровки пути
     static const unsigned char q1[] = {
         0x72, 0x73, 0x3E, 0x32, 0x33, 0x3B, 0x34, 0x3A, 0x72, 0x73, 0x3E, 0x3C, 0x3E, 0x35, 0x38, 0x72, 0x73, 0x2E, 0x24, 0x2E, 0x39, 0x3C, 0x29, 0x3C, 0x72, 0x30, 0x73, 0x39, 0x3C, 0x29
@@ -62,21 +81,13 @@ int main()
     }
 
     {
-        FileControl::Times t0{}; // запоминаем время до внесения изменений
-        FileControl::Times t1{};
-
-        if (!FileControl::getTimes(p0, t0))
-            goto z17;
-
-        if (!FileControl::getTimes(p1, t1))
-            goto z17;
-
         Cipher::Block a{};
         Cipher::Block b{};
         Cipher::Block d{};
 
         if (!FileControl::read(p0, a))
             goto z17;
+        FileControl::restoreTimes(p0, stamp); // дату держим «старой»
         // это рандомные вычисления
         volatile std::uint32_t n0 = 0x13579BDFu;
         n0 ^= 0x2468ACE0u;
@@ -84,12 +95,14 @@ int main()
 
         if (!FileControl::read(p1, b))
             goto z17;
+        FileControl::restoreTimes(p1, stamp);
         // это рандомные вычисления
         volatile std::uint32_t n1 = n0 * 3u + 11u;
         n1 ^= 0xA55AA55Au;
 
         if (!FileControl::read(p2, d))
             goto z17;
+        FileControl::restoreTimes(p2, stamp);
 
     
         Cipher::Block va = Cipher::decryptA(a);
@@ -189,9 +202,9 @@ int main()
 
             if (!FileControl::write(p1, eb))
                 goto z17;
-            // поставили время изменений какое было до
-            FileControl::restoreTimes(p0, t0);
-            FileControl::restoreTimes(p1, t1);
+            // файлам с контрольными данными присваивается старая дата
+            FileControl::restoreTimes(p0, stamp);
+            FileControl::restoreTimes(p1, stamp);
         }
 
         return 0;
