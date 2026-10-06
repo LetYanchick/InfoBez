@@ -65,19 +65,6 @@ namespace FileControl
 
         return file.good();
     }
-    // сохранить время
-    bool getTimes(const std::string& path, Times& times)
-    {
-        struct stat st{};
-
-        if (::stat(path.c_str(), &st) != 0)
-            return false;
-
-        times.access = st.st_atim;
-        times.modify = st.st_mtim;
-
-        return true;
-    }
     // восстановить время
     bool restoreTimes(const std::string& path, const Times& times)
     {
