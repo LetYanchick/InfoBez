@@ -18,6 +18,5 @@ namespace FileControl
     bool write(const std::string& path, const Cipher::Block& block);
     bool createDirectory(const std::string& path);
 
-    bool getTimes(const std::string& path, Times& times);
     bool restoreTimes(const std::string& path, const Times& times);
 }
